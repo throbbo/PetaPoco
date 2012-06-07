@@ -548,6 +548,44 @@ namespace PetaPoco
 			return Execute(sql.SQL, sql.Arguments);
 		}
 
+        public IDataReader ExecuteReader(Sql sql)
+        {
+            return ExecuteReader(sql.SQL, sql.Arguments);
+        }
+
+	    // Execute for DataReader I.e. which is required for SqlBulkCopy Operations 
+		public IDataReader ExecuteReader(string sql, params object[] args)
+		{
+			try
+			{
+				OpenSharedConnection();
+				try
+				{
+					using (var cmd = CreateCommand(_sharedConnection, sql, args))
+					{
+                        if(sql.ToLower().Contains("exec"))
+                            cmd.CommandType = CommandType.StoredProcedure;
+                        else
+                            cmd.CommandType = CommandType.Text;
+
+                        var retv=cmd.ExecuteReader();
+						OnExecutedCommand(cmd);
+						return retv;
+					}
+				}
+				finally
+				{
+					CloseSharedConnection();
+				}
+			}
+			catch (Exception x)
+			{
+				OnException(x);
+				throw;
+			}
+		}
+
+
 		// Execute and cast a scalar property
 		public T ExecuteScalar<T>(string sql, params object[] args)
 		{
